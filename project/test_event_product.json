@@ -1,0 +1,11 @@
+{
+  "actionGroup": "PortfolioArchitect",
+  "messageVersion": "1.0",
+  "function": "get_product_data",
+  "parameters": [
+    {
+      "name": "ticker",
+      "value": "AAPL"
+    }
+  ]
+}

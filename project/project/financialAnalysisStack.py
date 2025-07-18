@@ -31,24 +31,25 @@ class FinancialAnalysisStack(Stack):
             auto_delete_objects=True  # Use False for production
         )
 
+        # Deploy files to S3 bucket
+        self.s3_deployment = s3deploy.BucketDeployment(
+            self, "S3FilesDeployment",
+            sources=[s3deploy.Source.asset("files")],  # Deploy all files from the files directory
+            destination_bucket=self.s3_bucket,
+            memory_limit=1024,  # Increase memory limit to 1024 MB
+            prune=False,  # Don't delete files that aren't in the source
+            retain_on_delete=False  # Files will be deleted when stack is destroyed
+        )
+
         # Create Lambda Layer for yfinance
         self.yfinance_layer = _lambda.LayerVersion(
             self, "YFinanceLayer",
             layer_version_name="yfinance-layer",
-            code=_lambda.Code.from_asset("layers/yfinance"),  # Custom upload path
+            code=_lambda.Code.from_asset("files/yfinance.zip"),  # Custom upload path
             compatible_runtimes=[_lambda.Runtime.PYTHON_3_12],
             compatible_architectures=[_lambda.Architecture.X86_64],
             license="Apache License 2.0",
             description="Lambda layer containing yfinance library for financial data analysis"
-        )
-
-        # Deploy files to S3 bucket
-        self.s3_deployment = s3deploy.BucketDeployment(
-            self, "S3FilesDeployment",
-            sources=[s3deploy.Source.asset("files")],  # Source directory containing the files
-            destination_bucket=self.s3_bucket,
-            destination_key_prefix="data/",  # Optional: organize files in a folder
-            retain_on_delete=False  # Files will be deleted when stack is destroyed
         )
 
         # Define the financial analyst prompt text
@@ -106,26 +107,6 @@ Output format:
 - If the calculation is correct AND the return rate is 50% or below, output only "yes" without any additional explanation.
 - If the calculation is incorrect OR the return rate exceeds 50%, output "no" followed by a brief explanation on the next line."""
 
-        # Define test variables for the first prompt
-        test_variables_analyst = {
-            "user_input": json.dumps({
-                "total_investable_amount": 50000,
-                "age": 35,
-                "stock_investment_experience_years": 10,
-                "target_amount": 70000
-            })
-        }
-
-        # Define test variables for the reflection prompt
-        test_variables_reflection = {
-            "finance_result": json.dumps({
-                "risk_profile": "Aggressive",
-                "risk_profile_reason": "The user is 35 years old with 10 years of stock investment experience, indicating a good understanding of market dynamics. The target amount of 70000 with an initial investment of 50000 suggests a high-risk tolerance as they aim for a 40% return within one year.",
-                "required_annual_return_rate": 40.00,
-                "return_rate_reason": "To achieve the target amount of 70000 from an initial investment of 50000 within one year, the required annual return rate is calculated as follows: \n1. Determine the growth factor: 70000 / 50000 = 1.4 \n2. Convert the growth factor to a percentage increase: (1.4 - 1) * 100 = 40%. This means the investment needs to grow by 40% annually to meet the target."
-            })
-        }
-
         # Create Bedrock Prompt for financial analysis
         self.financial_analyst_prompt = bedrock.CfnPrompt(
             self, "FinancialAnalystPrompt",
@@ -146,7 +127,7 @@ Output format:
                             ]
                         )
                     ),
-                    model_id="amazon.nova-pro-v1:0",
+                    model_id="anthropic.claude-3-sonnet-20240229-v1:0",
                     inference_configuration=bedrock.CfnPrompt.PromptInferenceConfigurationProperty(
                         text=bedrock.CfnPrompt.PromptModelInferenceConfigurationProperty(
                             temperature=0.2,
@@ -155,11 +136,7 @@ Output format:
                         )
                     )
                 )
-            ],
-            # Add test configuration with the specified variables
-            tags={
-                "test_variables": json.dumps(test_variables_analyst)
-            }
+            ]
         )
 
         # Create Bedrock Prompt for financial analysis reflection
@@ -182,7 +159,7 @@ Output format:
                             ]
                         )
                     ),
-                    model_id="anthropic.claude-3-5-sonnet-20241022-v2:0",
+                    model_id="anthropic.claude-3-sonnet-20240229-v1:0",
                     inference_configuration=bedrock.CfnPrompt.PromptInferenceConfigurationProperty(
                         text=bedrock.CfnPrompt.PromptModelInferenceConfigurationProperty(
                             temperature=0.2,
@@ -191,11 +168,7 @@ Output format:
                         )
                     )
                 )
-            ],
-            # Add test configuration with the specified variables
-            tags={
-                "test_variables": json.dumps(test_variables_reflection)
-            }
+            ]
         )
 
         # Output the bucket name, layer ARN, and prompt details
@@ -235,8 +208,14 @@ Output format:
             description="ARN of the Bedrock financial analyst reflection prompt"
         )
 
-        CfnOutput(
-            self, "S3DeploymentStatus",
-            value="Files deployed to S3 bucket",
-            description="Status of S3 file deployment"
-        )
+        # CfnOutput(
+        #     self, "S3DeploymentOneARN",
+        #     value=self.s3_deployment.attr_arn,
+        #     description="Status of S3 file deployment"
+        # )
+
+        # CfnOutput(
+        #     self, "S3DeploymentTwoARN",
+        #     value=self.s3_deployment_lambda.attr_arn,
+        #     description="Status of S3 file deployment"
+        # )

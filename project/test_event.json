@@ -1,0 +1,5 @@
+{
+  "actionGroup": "PortfolioArchitect",
+  "messageVersion": "1.0",
+  "function": "get_available_products"
+}
