@@ -210,16 +210,14 @@ def handler(event, context):
         # Make sure the custom resource depends on the agent
         update_agent.node.add_dependency(self.portfolio_architect_agent)
 
-        # Create a custom resource to create and prepare the agent alias
-        prepare_alias = CustomResource(
-            self, "PrepareAgentAlias",
-            service_token=cr.Provider(
-                self, "PrepareAliasProvider",
-                on_event_handler=_lambda.Function(
-                    self, "PrepareAliasFunction",
-                    runtime=_lambda.Runtime.PYTHON_3_12,
-                    handler="index.handler",
-                    code=_lambda.Code.from_inline("""
+        # Create a custom resource provider for the alias
+        prepare_alias_provider = cr.Provider(
+            self, "PrepareAliasProvider",
+            on_event_handler=_lambda.Function(
+                self, "PrepareAliasFunction",
+                runtime=_lambda.Runtime.PYTHON_3_12,
+                handler="index.handler",
+                code=_lambda.Code.from_inline("""
 import boto3
 import cfnresponse
 
@@ -254,29 +252,34 @@ def handler(event, context):
         print(f"Error: {str(e)}")
         cfnresponse.send(event, context, cfnresponse.FAILED, {'Error': str(e)})
 """),
-                    role=iam.Role(
-                        self, "PrepareAliasRole",
-                        assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
-                        managed_policies=[
-                            iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole")
-                        ],
-                        inline_policies={
-                            "BedrockAccess": iam.PolicyDocument(
-                                statements=[
-                                    iam.PolicyStatement(
-                                        effect=iam.Effect.ALLOW,
-                                        actions=[
-                                            "bedrock:CreateAgentVersion",
-                                            "bedrock:CreateAgentAlias"
-                                        ],
-                                        resources=[agent_arn]
-                                    )
-                                ]
-                            )
-                        }
-                    )
+                role=iam.Role(
+                    self, "PrepareAliasRole",
+                    assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+                    managed_policies=[
+                        iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AWSLambdaBasicExecutionRole")
+                    ],
+                    inline_policies={
+                        "BedrockAccess": iam.PolicyDocument(
+                            statements=[
+                                iam.PolicyStatement(
+                                    effect=iam.Effect.ALLOW,
+                                    actions=[
+                                        "bedrock:CreateAgentVersion",
+                                        "bedrock:CreateAgentAlias"
+                                    ],
+                                    resources=[agent_arn]
+                                )
+                            ]
+                        )
+                    }
                 )
-            ),
+            )
+        )
+
+        # Create the custom resource using the provider
+        prepare_alias = CustomResource(
+            self, "PrepareAgentAlias",
+            service_token=prepare_alias_provider.service_token,
             properties={
                 "AgentId": self.portfolio_architect_agent.attr_agent_id
             }
