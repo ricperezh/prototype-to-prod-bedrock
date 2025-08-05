@@ -1,58 +1,227 @@
+# Investment Advisor AI System
 
-# Welcome to your CDK Python project!
+A multi-agent AI system built with AWS Bedrock that provides comprehensive investment portfolio analysis and recommendations.
 
-This is a blank project for CDK development with Python.
+## ⚠️ DISCLAIMER
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+**This code is for demonstration purposes only.** The authors are not responsible for any issues, costs, or problems that may arise from implementing or using this code in production environments. Use at your own risk and ensure proper testing before any production deployment.
 
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
+## Architecture Overview
 
-To manually create a virtualenv on MacOS and Linux:
+The system consists of:
+- **Financial Analyst Agent**: Analyzes user financial information
+- **Portfolio Architect Agent**: Creates portfolio recommendations
+- **Risk Manager Agent**: Provides risk assessment and adjustments
+- **Bedrock Flow**: Orchestrates the multi-agent workflow
+- **Streamlit App**: User interface for interaction
 
-```
-$ python3 -m venv .venv
-```
+## Prerequisites
 
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
+- AWS CLI configured with appropriate permissions
+- AWS CDK v2 installed (`npm install -g aws-cdk`)
+- Python 3.8+ with pip
+- Node.js 16+ (for CDK)
+- Access to AWS Bedrock models (Claude 3 Haiku, Claude 3.5 Sonnet)
 
-```
-$ source .venv/bin/activate
-```
+## Required AWS Permissions
 
-If you are a Windows platform, you would activate the virtualenv like this:
+Your AWS user/role needs permissions for:
+- Bedrock (agents, flows, prompts, models)
+- IAM (roles, policies)
+- Lambda functions
+- S3 buckets
+- CloudFormation stacks
 
-```
-% .venv\Scripts\activate.bat
-```
+## Deployment Steps
 
-Once the virtualenv is activated, you can install the required dependencies.
+### 1. Clone and Setup
 
-```
-$ pip install -r requirements.txt
-```
-
-At this point you can now synthesize the CloudFormation template for this code.
-
-```
-$ cdk synth
+```bash
+git clone <repository-url>
+cd summitcodetalk/mexsummitcodetalk/project
 ```
 
-To add additional dependencies, for example other CDK libraries, just add
-them to your `setup.py` file and rerun the `pip install -r requirements.txt`
-command.
+### 2. Install Dependencies
 
-## Useful commands
+```bash
+# Install Python dependencies
+pip install -r requirements.txt
 
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
+# Install CDK dependencies
+npm install
+```
 
-Enjoy!
+### 3. Configure AWS CDK
+
+```bash
+# Bootstrap CDK (if not done before)
+cdk bootstrap
+
+# Verify CDK setup
+cdk list
+```
+
+### 4. Deploy the Stacks
+
+Deploy in the following order:
+
+```bash
+# Deploy Portfolio Architect stack
+cdk deploy PortfolioArchitectStack
+
+# Deploy Risk Manager stack  
+cdk deploy RiskManagerStack
+
+# Deploy Investment Advisor stack
+cdk deploy InvestmentAdvisorStack
+```
+
+### 5. Collect Required IDs
+
+After deployment, collect these values from the CloudFormation outputs:
+
+**From PortfolioArchitectStack:**
+- `PortfolioArchitectAgentId`
+- `PortfolioArchitectAgentAliasId`
+
+**From RiskManagerStack:**
+- `RiskManagerAgentId` 
+- `RiskManagerAgentAliasId`
+
+**From InvestmentAdvisorStack:**
+- `InvestmentAdvisorFlowId`
+- `InvestmentAdvisorFlowAliasId`
+
+### 6. Setup Streamlit Application
+
+Navigate to the Streamlit app directory:
+
+```bash
+cd ../streamlit-app  # Adjust path as needed
+```
+
+Create a `.env` file with your collected IDs:
+
+```env
+# AWS Configuration
+AWS_REGION=us-east-1  # or your preferred region
+
+# Agent IDs (from CloudFormation outputs)
+PORTFOLIO_ARCHITECT_AGENT_ID=your_portfolio_agent_id
+PORTFOLIO_ARCHITECT_AGENT_ALIAS_ID=your_portfolio_alias_id
+RISK_MANAGER_AGENT_ID=your_risk_manager_agent_id
+RISK_MANAGER_AGENT_ALIAS_ID=your_risk_manager_alias_id
+
+# Flow IDs (from CloudFormation outputs)
+INVESTMENT_ADVISOR_FLOW_ID=your_flow_id
+INVESTMENT_ADVISOR_FLOW_ALIAS_ID=your_flow_alias_id
+```
+
+Install Streamlit dependencies:
+
+```bash
+pip install streamlit boto3 python-dotenv
+```
+
+### 7. Run the Streamlit Application
+
+```bash
+streamlit run app.py
+```
+
+The application will be available at `http://localhost:8501`
+
+## Usage
+
+1. Open the Streamlit application in your browser
+2. Enter your investment profile information:
+   - Personal details (age, income, goals)
+   - Risk tolerance
+   - Investment timeline
+   - Current portfolio (if any)
+3. Submit the form to trigger the AI analysis
+4. Review the comprehensive investment report generated by the system
+
+## System Components
+
+### Financial Analyst Agent
+- Analyzes user financial situation
+- Provides initial investment recommendations
+- Uses Claude 3 Haiku model
+
+### Portfolio Architect Agent  
+- Creates detailed portfolio compositions
+- Recommends specific ETFs and allocations
+- Uses Claude 3.5 Sonnet model
+
+### Risk Manager Agent
+- Assesses portfolio risks
+- Provides scenario-based adjustments
+- Uses Claude 3.5 Sonnet model
+
+### Bedrock Flow
+- Orchestrates the multi-agent workflow
+- Handles conditional logic and data flow
+- Generates final comprehensive reports
+
+## Troubleshooting
+
+### Common Issues
+
+**CDK Deployment Fails:**
+- Ensure AWS credentials are properly configured
+- Check that you have sufficient permissions
+- Verify Bedrock model access in your region
+
+**Agent Creation Fails:**
+- Confirm Bedrock models are available in your region
+- Check IAM permissions for Bedrock service
+- Ensure foundation models are enabled
+
+**Flow Validation Errors:**
+- Verify all agent IDs are correctly passed between stacks
+- Check that all required connections are properly configured
+- Ensure condition nodes have default conditions
+
+**Streamlit App Issues:**
+- Verify all environment variables are set correctly
+- Check AWS credentials and region configuration
+- Ensure Bedrock permissions for the user/role
+
+### Getting CloudFormation Outputs
+
+```bash
+# Get outputs for a specific stack
+aws cloudformation describe-stacks --stack-name PortfolioArchitectStack --query 'Stacks[0].Outputs'
+```
+
+## Cost Considerations
+
+This system uses several AWS services that incur costs:
+- Bedrock model invocations
+- Lambda function executions
+- S3 storage (minimal)
+- CloudFormation stack resources
+
+Monitor your AWS billing dashboard and set up cost alerts as needed.
+
+## Cleanup
+
+To avoid ongoing costs, destroy the stacks when done:
+
+```bash
+cdk destroy InvestmentAdvisorStack
+cdk destroy RiskManagerStack  
+cdk destroy PortfolioArchitectStack
+```
+
+## Support
+
+This is a demonstration project. For issues:
+1. Check the troubleshooting section
+2. Review AWS CloudFormation events for deployment errors
+3. Check CloudWatch logs for runtime issues
+
+## License
+
+This project is for educational and demonstration purposes only.
