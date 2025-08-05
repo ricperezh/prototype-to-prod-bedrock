@@ -19,13 +19,13 @@ class FinancialAnalysisStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         # Generate random identifier for S3 bucket
-        random_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
-        bucket_name = f"agenticai-{random_id}"
+        # random_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        # bucket_name = f"agenticai-{random_id}"
 
         # Create S3 bucket
         self.s3_bucket = s3.Bucket(
             self, "AgenticAIBucket",
-            bucket_name=bucket_name,
+            bucket_name="agenticai-131289",
             versioned=True,
             removal_policy=RemovalPolicy.DESTROY,  # Use RETAIN for production
             auto_delete_objects=True  # Use False for production
@@ -127,7 +127,7 @@ Output format:
                             ]
                         )
                     ),
-                    model_id="anthropic.claude-3-sonnet-20240229-v1:0",
+                    model_id="amazon.nova-pro-v1:0",
                     inference_configuration=bedrock.CfnPrompt.PromptInferenceConfigurationProperty(
                         text=bedrock.CfnPrompt.PromptModelInferenceConfigurationProperty(
                             temperature=0.2,
@@ -137,6 +137,11 @@ Output format:
                     )
                 )
             ]
+        )
+
+        cfn_prompt_version = bedrock.CfnPromptVersion(self, "FinancialAnalystPromptVersion",
+            prompt_arn=self.financial_analyst_prompt.attr_arn,
+
         )
 
         # Create Bedrock Prompt for financial analysis reflection
@@ -159,7 +164,7 @@ Output format:
                             ]
                         )
                     ),
-                    model_id="anthropic.claude-3-sonnet-20240229-v1:0",
+                    model_id="anthropic.claude-3-5-sonnet-20240620-v1:0",
                     inference_configuration=bedrock.CfnPrompt.PromptInferenceConfigurationProperty(
                         text=bedrock.CfnPrompt.PromptModelInferenceConfigurationProperty(
                             temperature=0.2,
@@ -169,6 +174,11 @@ Output format:
                     )
                 )
             ]
+        )
+
+        cfn_prompt_version = bedrock.CfnPromptVersion(self, "FinancialAnalystReflectionPromptVersion",
+            prompt_arn=self.financial_analyst_reflection_prompt.attr_arn,
+
         )
 
         # Output the bucket name, layer ARN, and prompt details
